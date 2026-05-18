@@ -10,7 +10,7 @@ app = Flask(__name__)
 
 # System Configuration
 MARKER_SIZE = 0.01
-TARGET_DISTANCE = 0.3
+TARGET_DISTANCE = 1.0 # 1m station-keeping
 REQUIRED_MARKERS = [0, 1, 2, 3]
 
 def get_camera_matrix(frame_width, frame_height):
@@ -28,54 +28,52 @@ dist_coeffs = np.zeros((5,1), dtype=np.float32)
 def get_error_frame(error_message):
     """Generates a black frame with red error text to push to the web dashboard."""
     frame = np.zeros((480, 640, 3), dtype=np.uint8)
-    
-    # Draw error text
     cv2.putText(frame, "CRITICAL ERROR:", (50, 200), cv2.FONT_HERSHEY_SIMPLEX, 1.2, (0, 0, 255), 3)
     cv2.putText(frame, error_message, (50, 250), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 0, 255), 2)
-    
-    # Encode and format for the Flask web stream
     ret, buffer = cv2.imencode('.jpg', frame)
-    frame_bytes = buffer.tobytes()
     return (b'--frame\r\n'
-            b'Content-Type: image/jpeg\r\n\r\n' + frame_bytes + b'\r\n')
+            b'Content-Type: image/jpeg\r\n\r\n' + buffer.tobytes() + b'\r\n')
 
 def generate_telemetry_frames():
-    # Force V4L2 backend and lower resolution for Pi CPU efficiency
-    cap = cv2.VideoCapture(0, cv2.CAP_V4L2)
-    
-    # FAILSAFE 1: Camera hardware not found at all
-    if not cap.isOpened():
-        print("CRITICAL: Camera hardware not found or inaccessible.")
-        yield get_error_frame("CAMERA NOT DETECTED (CHECK WIRING)")
+    #Failsafe 1: Camera hardware not found or picamera2 not installed
+    try:
+        from picamera2 import Picamera2
+        picam2 = Picamera2()
+    except Exception as e:
+        print(f"CRITICAL: Failed to initialize. Error: {e}")
+        yield get_error_frame("CAM INIT FAILED (CHECK PICAMERA2)")
         return
 
-    cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
-    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
-    cap.set(cv2.CAP_PROP_FPS, 30)
-
-    # FAILSAFE 2: Read first frame to ensure sensor is transmitting
-    ret, frame = cap.read()
-    if not ret:
-        print("CRITICAL: Camera opened but failed to read frame.")
-        yield get_error_frame("FAILED TO READ SENSOR DATA")
+    #Failsafe 2: Camera found but cannot configure the resolution or start the stream
+    try:
+        # Request a standard size and let the Pi ISP convert the mono to RGB
+        # This prevents OpenCV from crashing on 10-bit raw data
+        config = picam2.create_video_configuration({"main": {"format": "RGB888", "size": (640, 480)}})
+        picam2.configure(config)
+        picam2.start()
+    except Exception as e:
+        print(f"CRITICAL: Failed to start stream. Error: {e}")
+        yield get_error_frame("STREAM START FAILED")
         return
 
-    frame_height, frame_width = frame.shape[:2]
-    camera_matrix = get_camera_matrix(frame_width, frame_height)
-    
+    # Initialize GNC Math and GUI
+    camera_matrix = get_camera_matrix(640, 480)
     alignment_calc = AlignmentCalculator(TARGET_DISTANCE, REQUIRED_MARKERS)
-    gui = DockingGUI(frame_width, frame_height)
+    gui = DockingGUI(640, 480)
     detector, aruco_dict = get_aruco_detector(cv2.aruco.DICT_4X4_50)
 
     while True:
-        ret, frame = cap.read()
-        
-        # FAILSAFE 3: Camera unplugged or failed mid-operation
-        if not ret:
-            print("WARNING: Camera feed lost during operation.")
-            yield get_error_frame("CAMERA CONNECTION LOST")
+        #Failsafe 3: Camera is running but drops a frame or gets unplugged
+        try:
+            frame = picam2.capture_array()
+            # Picamera2 outputs RGB, OpenCV expects BGR
+            frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
+        except Exception as e:
+            print(f"WARNING: Camera feed lost or failed to grab frame. Error: {e}")
+            yield get_error_frame("FRAME CAPTURE FAILED")
             break
 
+        #GNC Logic
         corners, ids, rejected = detector.detectMarkers(frame)
 
         if ids is not None:
@@ -115,7 +113,7 @@ def generate_telemetry_frames():
 
         gui.draw_crosshair(frame)
 
-        # Instead of cv2.imshow, we encode the drawn frame to a memory buffer
+        # Encode the drawn frame to a memory buffer and push to web
         ret, buffer = cv2.imencode('.jpg', frame)
         frame_bytes = buffer.tobytes()
 
@@ -128,7 +126,8 @@ def video_feed():
 
 if __name__ == '__main__':
     print("=" * 50)
-    print("TELEMETRY SERVER ONLINE")
+    print("TELEMETRY SERVER ONLINE (PICAMERA2 ENGINE)")
     print("Port: 5000")
     print("=" * 50)
+    # Run server without the Pi 5 crashing
     app.run(host='0.0.0.0', port=5000, threaded=True)
