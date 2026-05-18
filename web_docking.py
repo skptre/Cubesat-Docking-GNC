@@ -9,7 +9,7 @@ from aruco_helper import *
 app = Flask(__name__)
 
 # System Configuration
-MARKER_SIZE = 0.05
+MARKER_SIZE = 0.01
 TARGET_DISTANCE = 0.3
 REQUIRED_MARKERS = [0, 1, 2, 3]
 
