@@ -25,17 +25,39 @@ def get_camera_matrix(frame_width, frame_height):
 
 dist_coeffs = np.zeros((5,1), dtype=np.float32)
 
+def get_error_frame(error_message):
+    """Generates a black frame with red error text to push to the web dashboard."""
+    frame = np.zeros((480, 640, 3), dtype=np.uint8)
+    
+    # Draw error text
+    cv2.putText(frame, "CRITICAL ERROR:", (50, 200), cv2.FONT_HERSHEY_SIMPLEX, 1.2, (0, 0, 255), 3)
+    cv2.putText(frame, error_message, (50, 250), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 0, 255), 2)
+    
+    # Encode and format for the Flask web stream
+    ret, buffer = cv2.imencode('.jpg', frame)
+    frame_bytes = buffer.tobytes()
+    return (b'--frame\r\n'
+            b'Content-Type: image/jpeg\r\n\r\n' + frame_bytes + b'\r\n')
+
 def generate_telemetry_frames():
     # Force V4L2 backend and lower resolution for Pi CPU efficiency
     cap = cv2.VideoCapture(0, cv2.CAP_V4L2)
+    
+    # FAILSAFE 1: Camera hardware not found at all
+    if not cap.isOpened():
+        print("CRITICAL: Camera hardware not found or inaccessible.")
+        yield get_error_frame("CAMERA NOT DETECTED (CHECK WIRING)")
+        return
+
     cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
     cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
     cap.set(cv2.CAP_PROP_FPS, 30)
 
-    # Read first frame to initialize GUI and Matrices
+    # FAILSAFE 2: Read first frame to ensure sensor is transmitting
     ret, frame = cap.read()
     if not ret:
-        print("CRITICAL: Camera failed to initialize.")
+        print("CRITICAL: Camera opened but failed to read frame.")
+        yield get_error_frame("FAILED TO READ SENSOR DATA")
         return
 
     frame_height, frame_width = frame.shape[:2]
@@ -47,7 +69,11 @@ def generate_telemetry_frames():
 
     while True:
         ret, frame = cap.read()
+        
+        # FAILSAFE 3: Camera unplugged or failed mid-operation
         if not ret:
+            print("WARNING: Camera feed lost during operation.")
+            yield get_error_frame("CAMERA CONNECTION LOST")
             break
 
         corners, ids, rejected = detector.detectMarkers(frame)
