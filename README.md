@@ -4,7 +4,7 @@
 This software is designed to run on the primary vision processing node of the docking system:
 * **Processor:** Raspberry Pi 5
 * **Camera:** Arducam OV9281 (Monochrome Global Shutter)
-* **Markers:** 5cm ArUco markers (DICT_4X4_50) arranged in a square pattern.
+* **Markers:** 1cm ArUco markers (DICT_4X4_50) arranged in a square pattern.
 
 ## Usage
 To launch the full docking vision system, run:
@@ -18,5 +18,5 @@ While the camera window is active, use the following keyboard inputs:
 * `s` - Save a screenshot of the current frame (useful for logging alignment errors or testing).
 
 ## Docking Parameters
-* `MARKER_SIZE`: Currently set to `0.05` meters (5cm).
+* `MARKER_SIZE`: Currently set to `0.01` meters (1cm).
 * `TARGET_DISTANCE`: The ideal station-keeping distance, currently set to `0.3` meters (30cm).
