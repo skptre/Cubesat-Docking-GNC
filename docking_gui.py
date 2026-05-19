@@ -81,18 +81,23 @@ class DockingGUI:
         overlay = frame.copy()
 
         # Status color
-        if command_dict['status'] == 'ALIGNED':
-            color = self.COLOR_ALIGNED
-        elif command_dict['status'] == 'ALIGNING':
-            color = self.COLOR_ALIGNING
+        status = command_dict['status']
+        if status in ['STATION_KEEPING']:
+            color = self.COLOR_ALIGNED          # Green
+        elif status in ['ALIGNING_XY', 'BACKING_UP']:
+            color = self.COLOR_ALIGNING         # Orange
+        elif status in ['APPROACHING']:
+            color = (255, 255, 0)               # Cyan/Yellow (Safe to move forward)
+        elif status in ['SOFT_CAPTURE']:
+            color = self.COLOR_TARGET           # Magenta (Magnets engaged)
         else:
-            color = self.COLOR_NO_MARKERS
+            color = self.COLOR_NO_MARKERS       # Red (Lost target or incomplete)
 
         # Status text
-        cv2.putText(frame, f"Status: {command_dict['status']}",
+        cv2.putText(frame, f"Status: {status}",
                     (20, 40), cv2.FONT_HERSHEY_SIMPLEX, 0.8, color, 2)
 
-        cv2.putText(frame, f"Command: {command_dict['command']}",
+        cv2.putText(frame, f"Cmd: {command_dict['command']}",
                     (20, 75), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
 
         # Error details

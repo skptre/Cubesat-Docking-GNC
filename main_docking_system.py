@@ -21,8 +21,8 @@ def get_camera_matrix(frame_width, frame_height):
 dist_coeffs = np.zeros((5,1), dtype=np.float32)
 
 # Configuration
-MARKER_SIZE = 0.05 # 5cm markers
-TARGET_DISTANCE = 0.3 # 30cm from marker
+MARKER_SIZE = 0.01 # 1cm markers
+TARGET_DISTANCE = 1.0 # 30cm from marker (Station-Keeping)
 REQUIRED_MARKERS = [0, 1, 2, 3]
 
 # Initialize
