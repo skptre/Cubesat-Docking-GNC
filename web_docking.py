@@ -48,7 +48,7 @@ def generate_telemetry_frames():
     try:
         # Request a standard size and let the Pi ISP convert the mono to RGB
         # This prevents OpenCV from crashing on 10-bit raw data
-        config = picam2.create_video_configuration({"main": {"format": "RGB888", "size": (640, 480)}})
+        config = picam2.create_video_configuration(main={"format": "RGB888", "size": (640, 400)})
         picam2.configure(config)
         picam2.start()
     except Exception as e:
