@@ -51,6 +51,26 @@ def generate_telemetry_frames():
         config = picam2.create_video_configuration(main={"format": "YUV420", "size": (640, 400)})
         picam2.configure(config)
         picam2.start()
+
+        print("Initiating dynamic hardware warmup sequence...")
+        import time
+        warmup_attempts = 0
+        max_attempts = 50  # 50 attempts * 0.1s = 5 seconds absolute max timeout
+        
+        while warmup_attempts < max_attempts:
+            try:
+                # Ask for a throwaway frame to test the pipeline
+                _ = picam2.capture_array()  
+                print(f"SUCCESS: Hardware clock synced in {warmup_attempts * 0.1:.1f} seconds.")
+                break
+            except Exception:
+                warmup_attempts += 1
+                time.sleep(0.1) # Wait 100ms and ping it again
+        else:
+            # The else block executes ONLY if the while loop finishes without hitting the 'break'
+            print("CRITICAL: Hardware failed to sync after 5 seconds.")
+            yield get_error_frame("WARMUP TIMEOUT")
+            return
     except Exception as e:
         print(f"CRITICAL: Failed to start stream. Error: {e}")
         yield get_error_frame("STREAM START FAILED")
