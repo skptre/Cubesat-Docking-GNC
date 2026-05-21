@@ -45,35 +45,39 @@ def generate_telemetry_frames():
         return
 
     #Failsafe 2: Camera found but cannot configure the resolution or start the stream
-    try:
-        # Request a standard size and let the Pi ISP convert the mono to RGB
-        # This prevents OpenCV from crashing on 10-bit raw data
-        config = picam2.create_video_configuration(main={"format": "YUV420", "size": (640, 400)})
-        picam2.configure(config)
-        picam2.start()
-
-        print("Initiating dynamic hardware warmup sequence...")
-        import time
-        warmup_attempts = 0
-        max_attempts = 50  # 50 attempts * 0.1s = 5 seconds absolute max timeout
-        
-        while warmup_attempts < max_attempts:
-            try:
-                # Ask for a throwaway frame to test the pipeline
-                _ = picam2.capture_array()  
-                print(f"SUCCESS: Hardware clock synced in {warmup_attempts * 0.1:.1f} seconds.")
-                break
-            except Exception:
-                warmup_attempts += 1
-                time.sleep(0.1) # Wait 100ms and ping it again
-        else:
-            # The else block executes ONLY if the while loop finishes without hitting the 'break'
-            print("CRITICAL: Hardware failed to sync after 5 seconds.")
-            yield get_error_frame("WARMUP TIMEOUT")
-            return
-    except Exception as e:
-        print(f"CRITICAL: Failed to start stream. Error: {e}")
-        yield get_error_frame("STREAM START FAILED")
+    import time
+    print("Intializing hardware warmup and sync sequence...")
+    warmup_attempts = 0
+    max_attempts = 5 
+    
+    while warmup_attempts < max_attempts:
+        try:
+            # If this is a retry, we must kill the crashed pipeline first
+            if warmup_attempts > 0:
+                print(f"Timeout detected. Forcing hardware restart (Attempt {warmup_attempts}/5)...")
+                picam2.stop()
+                time.sleep(0.5)
+            
+            # Build and start the pipeline
+            config = picam2.create_video_configuration(main={"format": "YUV420", "size": (640, 400)})
+            picam2.configure(config)
+            picam2.start()
+            
+            # Give the pipeline a half-second to breathe, then demand a frame
+            time.sleep(0.5)
+            _ = picam2.capture_array()
+            
+            print("SUCCESS: Hardware clock synced and pipeline is stable!")
+            break # Escape the warmup loop, the camera is ready!
+            
+        except Exception as e:
+            # The camera timed out. Increment the counter and let the loop restart it.
+            warmup_attempts += 1
+            
+    else:
+        # This only triggers if we fail 5 restarts in a row
+        print("CRITICAL: Hardware failed to sync after 5 restarts.")
+        yield get_error_frame("WARMUP RESTART FAILED")
         return
 
     # Initialize GNC Math and GUI
