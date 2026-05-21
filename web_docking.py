@@ -21,8 +21,8 @@ def camera_worker_thread():
     global global_frame
     print("[CAMERA] Connecting to local hardware stream on port 8888...")
     
-    # Connect to the rpicam-vid TCP server
-    cap = cv2.VideoCapture("tcp://127.0.0.1:8888")
+    # Connect to the rpicam-vid TCP server using FFmpeg
+    cap = cv2.VideoCapture("tcp://127.0.0.1:8888", cv2.CAP_FFMPEG)
     
     if not cap.isOpened():
         print("[CAMERA] FATAL: Could not connect to stream. Is rpicam-vid running?")
