@@ -48,7 +48,7 @@ def generate_telemetry_frames():
     try:
         # Request a standard size and let the Pi ISP convert the mono to RGB
         # This prevents OpenCV from crashing on 10-bit raw data
-        config = picam2.create_video_configuration(main={"format": "Y8", "size": (640, 400)})
+        config = picam2.create_video_configuration(main={"format": "YUV420", "size": (640, 400)})
         picam2.configure(config)
         picam2.start()
     except Exception as e:
@@ -65,9 +65,13 @@ def generate_telemetry_frames():
     while True:
         #Failsafe 3: Camera is running but drops a frame or gets unplugged
         try:
-            frame = picam2.capture_array()
-            # Picamera2 outputs RGB, OpenCV expects BGR
-            frame = cv2.cvtColor(frame, cv2.COLOR_GRAY2BGR)
+            raw_frame = picam2.capture_array()
+            if len(raw_frame.shape) == 3:
+                gray_frame = raw_frame[:, :, 0]
+            else:
+                gray_frame = raw_frame
+
+            frame = cv2.cvtColor(gray_frame, cv2.COLOR_GRAY2BGR)
         except Exception as e:
             print(f"WARNING: Camera feed lost or failed to grab frame. Error: {e}")
             yield get_error_frame("FRAME CAPTURE FAILED")
