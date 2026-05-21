@@ -27,7 +27,7 @@ dist_coeffs = np.zeros((5,1), dtype=np.float32)
 
 def get_error_frame(error_message):
     """Generates a black frame with red error text to push to the web dashboard."""
-    frame = np.zeros((480, 640, 3), dtype=np.uint8)
+    frame = np.zeros((400, 640, 3), dtype=np.uint8)
     cv2.putText(frame, "CRITICAL ERROR:", (50, 200), cv2.FONT_HERSHEY_SIMPLEX, 1.2, (0, 0, 255), 3)
     cv2.putText(frame, error_message, (50, 250), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 0, 255), 2)
     ret, buffer = cv2.imencode('.jpg', frame)
@@ -48,7 +48,7 @@ def generate_telemetry_frames():
     try:
         # Request a standard size and let the Pi ISP convert the mono to RGB
         # This prevents OpenCV from crashing on 10-bit raw data
-        config = picam2.create_video_configuration(main={"format": "RGB888", "size": (640, 400)})
+        config = picam2.create_video_configuration(main={"format": "Y8", "size": (640, 400)})
         picam2.configure(config)
         picam2.start()
     except Exception as e:
@@ -57,9 +57,9 @@ def generate_telemetry_frames():
         return
 
     # Initialize GNC Math and GUI
-    camera_matrix = get_camera_matrix(640, 480)
+    camera_matrix = get_camera_matrix(640, 400)
     alignment_calc = AlignmentCalculator(TARGET_DISTANCE, REQUIRED_MARKERS)
-    gui = DockingGUI(640, 480)
+    gui = DockingGUI(640, 400)
     detector, aruco_dict = get_aruco_detector(cv2.aruco.DICT_4X4_50)
 
     while True:
@@ -67,7 +67,7 @@ def generate_telemetry_frames():
         try:
             frame = picam2.capture_array()
             # Picamera2 outputs RGB, OpenCV expects BGR
-            frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
+            frame = cv2.cvtColor(frame, cv2.COLOR_GRAY2BGR)
         except Exception as e:
             print(f"WARNING: Camera feed lost or failed to grab frame. Error: {e}")
             yield get_error_frame("FRAME CAPTURE FAILED")

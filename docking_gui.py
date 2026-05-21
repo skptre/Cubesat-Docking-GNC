@@ -120,7 +120,7 @@ class DockingGUI:
 
         # Distance bar
         bar_x = self.width - 50
-        bar_y_start = 200
+        bar_y_start = 100
         bar_y_end = self.height - 50
         bar_height = bar_y_end - bar_y_start
 
