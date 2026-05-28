@@ -22,7 +22,7 @@ def camera_worker_thread():
     print("[CAMERA] Connecting to local hardware stream on port 8888...")
     
     #Force OpenCV to use FFmpeg to stop the TCP packet tearing
-    cap = cv2.VideoCapture("tcp://127.0.0.1:8888", cv2.CAP_FFMPEG)
+    cap = cv2.VideoCapture("tcp://127.0.0.1:8888?timeout=5000000", cv2.CAP_FFMPEG)
     
     if not cap.isOpened():
         print("[CAMERA] FATAL: Could not connect to stream. Is rpicam-vid running?")
@@ -33,7 +33,7 @@ def camera_worker_thread():
         ret, frame = cap.read()
         if not ret:
             print("[CAMERA] Frame dropped. Retrying...")
-            time.sleep(0.1)
+            time.sleep(0.05)
             continue
             
         # SAFETY CHECK: If FFmpeg decoded it as a flat 1-channel image, 
