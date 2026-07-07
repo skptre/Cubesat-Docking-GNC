@@ -39,7 +39,7 @@ class AlignmentCalculator:
         positions = []
         for i, marker_id in enumerate(ids.flatten()):
             if marker_id in self.required_marker_ids:
-                positions.append(tvecs[i][0])
+                positions.append(tvecs[i].flatten())
 
         # Calculate center:
         center = np.mean(positions, axis=0)
