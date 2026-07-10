@@ -15,7 +15,7 @@ We use a Finite State Machine (FSM) to prevent the satellite from flying diagona
 4. **SOFT_CAPTURE**: At 5cm out, camera distortion takes over. We drop the optical feed and trigger soft capture mechanism to take over and pull the mechanical interfaces together.
 
 ## Docking Parameters
-* `MARKER_SIZE`: Currently set to `0.01` meters (1cm).
+* `MARKER_SIZE`: Currently set to `0.02` meters (1cm).
 * `TARGET_DISTANCE`: The ideal station-keeping distance, currently set to `1.0` meters (100cm).
 * `TERMINAL_DISTANCE`: `0.05` meters (5cm blind soft-capture zone)
 

@@ -2,7 +2,6 @@ import numpy as np
 
 class AlignmentCalculator:
     """
-    Assumes 4 markers arranged in a square pattern on the target
 
     Finite State Machine (SNAP Logic):
     - NO_MARKERS: Camera cannot detect all required ArUco markers.
@@ -13,9 +12,8 @@ class AlignmentCalculator:
     - STATION_KEEPING: Perfectly aligned at the safe 1m holding distance.
     - SOFT_CAPTURE: Distance is <5cm. GNC disabled. Magnetic soft capture engages.
     """
-    def __init__(self, target_distance=0.3, required_marker_ids=[0, 1, 2, 3]):
+    def __init__(self, target_distance=0.3):
         self.target_distance = target_distance # 1.0 meters
-        self.required_marker_ids = set(required_marker_ids)
         
         #FSM State Tracking & Tolerances
         self.current_state = 'ACQUIRING'
@@ -23,28 +21,7 @@ class AlignmentCalculator:
         self.z_tolerance = 0.02   # 2 cm distance tolerance
         self.terminal_distance = 0.05 # 5cm blind coast distance
 
-    def calculate_target_center(self, ids, tvecs):
-        if ids is None:
-            return None
-
-        detected_ids = set(ids.flatten())
-
-        # Check for required markers
-        if not self.required_marker_ids.issubset(detected_ids):
-            missing = self.required_marker_ids - detected_ids
-            # print(f"Missing markers: {missing}") # terminal spam
-            return None
-            
-        # Get positions of required markers
-        positions = []
-        for i, marker_id in enumerate(ids.flatten()):
-            if marker_id in self.required_marker_ids:
-                positions.append(tvecs[i][0])
-
-        # Calculate center:
-        center = np.mean(positions, axis=0)
-        return center
-
+    
     def calculate_alignment_error(self, center_position):
         if center_position is None:
             return None

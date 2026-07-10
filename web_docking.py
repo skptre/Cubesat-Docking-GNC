@@ -5,13 +5,12 @@ import time
 from flask import Flask, Response
 from alignment_calculator import AlignmentCalculator
 from docking_gui import DockingGUI
-from aruco_helper import *
+from aruco_helper import get_aruco_detector
+from face_model import (build_board, estimate_face_pose, target_in_interface_frame, face_angles_deg)
 
 app = Flask(__name__)
 
-MARKER_SIZE = 0.01
 TARGET_DISTANCE = 1.0 
-REQUIRED_MARKERS = [0, 1, 2, 3]
 
 global_frame = None
 frame_lock = threading.Lock()
@@ -62,9 +61,10 @@ dist_coeffs = np.zeros((5,1), dtype=np.float32)
 
 def generate_telemetry_frames():
     camera_matrix = get_camera_matrix(640, 400)
-    alignment_calc = AlignmentCalculator(TARGET_DISTANCE, REQUIRED_MARKERS)
+    alignment_calc = AlignmentCalculator(TARGET_DISTANCE)
     gui = DockingGUI(640, 400)
     detector, aruco_dict = get_aruco_detector(cv2.aruco.DICT_4X4_50)
+    board = build_board(aruco_dict)
 
     while True:
         with frame_lock:
@@ -78,31 +78,27 @@ def generate_telemetry_frames():
 
         if ids is not None:
             cv2.aruco.drawDetectedMarkers(frame, corners, ids)
-            rvecs, tvecs, _ = estimate_pose_single_markers(
-                corners, MARKER_SIZE, camera_matrix, dist_coeffs
-            )
+            rvec, tvec, n_used = estimate_face_pose(board, corners, ids,
+                                                    camera_matrix, dist_coeffs)
+            if rvec is not None:
+                # one axes triad at the docking-axis center (replaces per-marker axes)
+                cv2.drawFrameAxes(frame, camera_matrix, dist_coeffs, rvec, tvec, 0.05)
 
-            for i in range(len(ids)):
-                tvec_corner = tvecs[i].copy()
-                R, _ = cv2.Rodrigues(rvecs[i])
-                corner_offset = np.array([[-MARKER_SIZE / 2], [-MARKER_SIZE / 2], [0]])
-                tvec_corner += R @ corner_offset
-                cv2.drawFrameAxes(frame, camera_matrix, dist_coeffs, rvecs[i], tvec_corner, MARKER_SIZE)
+                pos_cam = tvec.flatten()                    # camera frame  -> DRAWING
+                pos_int = target_in_interface_frame(tvec)   # interface frame -> CONTROL
+                yaw, pitch, roll = face_angles_deg(rvec)
 
-            center_position = alignment_calc.calculate_target_center(ids, tvecs)
-            error_dict = alignment_calc.calculate_alignment_error(center_position)
-            command_dict = alignment_calc.get_movement_command(error_dict)
+                error_dict = alignment_calc.calculate_alignment_error(pos_int)
+                command_dict = alignment_calc.get_movement_command(error_dict)
 
-            if center_position is not None:
-                target_point = gui.draw_target_point(frame, center_position, camera_matrix)
+                target_point = gui.draw_target_point(frame, pos_cam, camera_matrix)
                 gui.draw_alignment_arrows(frame, error_dict, target_point)
-                gui.draw_distance_indicator(frame, center_position, TARGET_DISTANCE)
+                gui.draw_distance_indicator(frame, pos_int, TARGET_DISTANCE, scale_max=1.2)
                 gui.draw_status_panel(frame, command_dict, error_dict)
+                gui.draw_pose_strip(frame, pos_int[2], yaw, pitch, roll, n_used)
             else:
-                detected_ids = set(ids.flatten())
-                missing_ids = set(REQUIRED_MARKERS) - detected_ids
-                command_dict = {'status': 'INCOMPLETE', 'command': f'Missing: {sorted(missing_ids)}'}
-                gui.draw_status_panel(frame, command_dict, None)
+                gui.draw_status_panel(frame,
+                    {'status': 'NO POSE', 'command': 'Markers seen, pose solve failed'}, None)
         else:
             command_dict = {'status': 'NO MARKERS', 'command': 'No markers detected'}
             gui.draw_status_panel(frame, command_dict, None)
