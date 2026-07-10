@@ -2,7 +2,6 @@ import numpy as np
 
 class AlignmentCalculator:
     """
-
     Finite State Machine (SNAP Logic):
     - NO_MARKERS: Camera cannot detect all required ArUco markers.
     - ACQUIRING: System initialization state.
