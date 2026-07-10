@@ -10,7 +10,6 @@ from face_model import (build_board, estimate_face_pose, target_in_interface_fra
 
 app = Flask(__name__)
 
-MARKER_SIZE = 0.01
 TARGET_DISTANCE = 1.0 
 
 global_frame = None
