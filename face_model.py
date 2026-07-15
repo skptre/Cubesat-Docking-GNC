@@ -14,7 +14,7 @@ MARKER_CENTERS = {
 }
 
 # CAMERA OFFSET
-CAMERA_IN_INTERFACE_FRAME = np.array([-0.0475, 0.0, 0.0])    # 47.5mm
+CAMERA_IN_INTERFACE_FRAME = np.array([0, 0.0, 0.0])    # 47.5mm
 
 # For each marker we generate its 4 corner coordinates in the face frame, in the corner order ArUco detects them: top-left, top-right, bottom-right, bottom-left
 def build_board(aruco_dict):
