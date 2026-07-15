@@ -7,14 +7,21 @@ import numpy as np
 
 MARKER_SIZE = 0.02
 MARKER_CENTERS = {
-    0: (-0.037, +0.037), # Measure on the interface
-    1: (+0.037, +0.037), # Measure on the interface
-    2: (-0.037, -0.037), # Measure on the interface
-    3: (+0.037, -0.037), # Measure on the interface
+    0: (-0.040, +0.040), # Measure on the interface
+    1: (+0.040, +0.040), # Measure on the interface
+    2: (-0.040, -0.040), # Measure on the interface
+    3: (+0.040, -0.040), # Measure on the interface
 }
 
 # CAMERA OFFSET
 CAMERA_IN_INTERFACE_FRAME = np.array([0, 0.0, 0.0])    # 47.5mm
+
+CAMERA_ROLL_DEG = 45.0 #CHANGE TO -45 IF ROLL READS 90
+
+def _R_cam_to_interface():
+    th = np.radians(CAMERA_ROLL_DEG)
+    c, s = np.cos(th), np.sin(th)
+    return np.array([[c, -s, 0.0], [s, c, 0.0], [0.0, 0.0, 1.0]])
 
 # For each marker we generate its 4 corner coordinates in the face frame, in the corner order ArUco detects them: top-left, top-right, bottom-right, bottom-left
 def build_board(aruco_dict):
@@ -58,7 +65,7 @@ def estimate_face_pose(board, corners, ids, camera_matrix, dist_coeffs):
 
 # Expressing the error relative to the docking interface, rather than the lens
 def target_in_interface_frame(tvec):
-    return tvec.flatten() + CAMERA_IN_INTERFACE_FRAME
+    return _R_cam_to_interface() @ tvec.flatten() + CAMERA_IN_INTERFACE_FRAME
 
 
 # Attitude (yaw, pitch, roll)
@@ -66,8 +73,9 @@ def face_angles_deg(rvec):
 
     R, _ = cv2.Rodrigues(rvec)
     # A face pointing straight at the camera has its +z toward the camera, i.e. along the camera's -z. Undo that nominal flip so "aligned" = 0.
-    R_align = np.array([[1, 0, 0], [0, -1, 0], [0, 0, -1]], dtype=float)
-    R_rel = R_align.T @ R
+    R_flip = np.array([[1, 0, 0], [0, -1, 0], [0, 0, -1]], dtype=float)
+    R_nom = _R_cam_to_interface().T @ R_flip   # aligned face as the rolled camera sees it
+    R_rel = R_nom.T @ R
 
     yaw   = np.degrees(np.arctan2(-R_rel[2, 0], R_rel[2, 2]))
     pitch = np.degrees(np.arctan2(R_rel[2, 1], R_rel[2, 2]))
