@@ -1,9 +1,9 @@
 import numpy as np
 
-# Estimation for a camera with (640x480) resolution
-def get_camera_matrix(frame_width=640, frame_height=480):
+# Estimation for a camera with (1280x800) resolution
+def get_camera_matrix(frame_width=1280, frame_height=800):
 
-    focal_length = frame_width * 0.7
+    focal_length = frame_width * (950.0 / 1280.0)   # OV9281 datasheet: 2.85mm / 3um pixels
     center_x = frame_width / 2
     center_y = frame_height / 2
 

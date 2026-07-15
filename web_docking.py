@@ -48,7 +48,7 @@ cam_thread.start()
 
 
 def get_camera_matrix(frame_width, frame_height):
-    focal_length = frame_width * 0.7
+    focal_length = frame_width * (950.0 / 1280.0)
     center_x = frame_width / 2
     center_y = frame_height / 2
     return np.array([
@@ -60,9 +60,9 @@ def get_camera_matrix(frame_width, frame_height):
 dist_coeffs = np.zeros((5,1), dtype=np.float32)
 
 def generate_telemetry_frames():
-    camera_matrix = get_camera_matrix(640, 400)
+    camera_matrix = get_camera_matrix(1280, 800)
     alignment_calc = AlignmentCalculator(TARGET_DISTANCE)
-    gui = DockingGUI(640, 400)
+    gui = DockingGUI(1280, 800)
     detector, aruco_dict = get_aruco_detector(cv2.aruco.DICT_4X4_50)
     board = build_board(aruco_dict)
 
