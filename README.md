@@ -30,21 +30,21 @@ Note: this axis-sequenced FSM is a bench harness; the flight architecture gates 
 |---|---|---|
 | `MARKER_SIZE` | `face_model.py` | 0.020 m |
 | `MARKER_CENTERS` | `face_model.py` | measured per build (**placeholder square until calipered/CAD**) |
-| `CAMERA_IN_INTERFACE_FRAME` | `face_model.py` | (-0.0475, 0, 0) m (change depending on camera offset) |
+| `CAMERA_IN_INTERFACE_FRAME` | `face_model.py` | (0, -0.0216, 0) m (change depending on camera offset) |
 | `TARGET_DISTANCE` | `web_docking.py` | 1.0 m (station-keeping setpoint) |
-| Camera intrinsics | `camera_calibration.py` | **estimated (focal = 0.7 x width) — checkerboard calibration pending** |
+| Camera intrinsics | `camera_calibration.py` | **focal = width * (950.0 / 1280.0) — checkerboard calibration pending** |
 
 ## Usage
+**Start the camera**
+```bash
+rpicam-vid -t 0 --width 1280 --height 800 --codec mjpeg --framerate 30 --nopreview --shutter 4000 --gain 4 -o tcp://127.0.0.1:8888 --listen
+```
+
 **Spin up the Flask server to stream the live GNC dashboard over your network:**
 ```bash
 python web_docking.py
 ```
 Then navigate to `http://<pi-ip-address>:5000` in your browser.
-
-**To run the vision system with a local video feed:**
-```bash
-python main_docking_system.py
-```
 
 ### Pogo-pin data-rate benchmark (two mated modules)
 ```bash

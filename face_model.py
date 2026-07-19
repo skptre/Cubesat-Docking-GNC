@@ -14,9 +14,9 @@ MARKER_CENTERS = {
 }
 
 # CAMERA OFFSET
-CAMERA_IN_INTERFACE_FRAME = np.array([0, 0.0, 0.0])    # 47.5mm
+CAMERA_IN_INTERFACE_FRAME = np.array([0, -0.0216, 0.0])    # 21.6mm up
 
-CAMERA_ROLL_DEG = 45.0 #CHANGE TO -45 IF ROLL READS 90
+CAMERA_ROLL_DEG = 0.0
 
 def _R_cam_to_interface():
     th = np.radians(CAMERA_ROLL_DEG)
