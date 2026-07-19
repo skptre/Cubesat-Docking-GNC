@@ -46,6 +46,22 @@ python web_docking.py
 ```
 Then navigate to `http://<pi-ip-address>:5000` in your browser.
 
+### Field data recorder (headless, no browser)
+Runs the same camera stream + detection + constellation pose as
+`web_docking.py`, but writes data to disk instead of serving a dashboard:
+
+- `runNN/pose_log.csv` — one row per frame (even when nothing detected)
+- `runNN/frames/` — raw JPGs (every 3rd frame), timestamped names
+
+```bash
+python3 record_docking.py        # auto-names the run folder (run01, run02, ...)
+```
+Ctrl-C to stop; run again for the next run — nothing is ever overwritten.
+Note the printed folder name in the test notebook.
+
+Run this INSTEAD of `web_docking.py`, not alongside it — the camera's TCP
+stream feeds one client at a time.
+
 ### Pogo-pin data-rate benchmark (two mated modules)
 ```bash
 python3 benchmark_transfer.py recv   # module A
