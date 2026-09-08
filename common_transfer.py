@@ -1,7 +1,7 @@
 import struct
 
 BAUD_RATE = 115200
-UART_PORT = "/dev/serial0"  # Hardware UART on Pi 5
+UART_PORT = "/dev/ttyAMA2"  # Hardware UART on Pi 5
 
 START_BYTE = 0xAA
 END_BYTE   = 0x55
